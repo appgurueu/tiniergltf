@@ -8,6 +8,7 @@ project(tiniergltf
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(JSONCPP_WITH_TESTS OFF)
 include(FetchContent)
 FetchContent_Declare(
 	jsoncpp
