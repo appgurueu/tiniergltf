@@ -8,11 +8,18 @@ project(tiniergltf
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_library(JSON_LIBRARY NAMES jsoncpp)
-find_path(JSON_INCLUDE_DIR json/allocator.h PATH_SUFFIXES jsoncpp)
+include(FetchContent)
+FetchContent_Declare(
+	jsoncpp
+	GIT_REPOSITORY https://github.com/appgurueu/jsoncpp.git
+	GIT_TAG 37dab289d99f463662c2bac8bd06622fbeeb4339
+)
+FetchContent_MakeAvailable(jsoncpp)
 
 add_library(tiniergltf OBJECT tiniergltf.hpp base64.cpp base64.h)
 add_library(tiniergltf::tiniergltf ALIAS tiniergltf)
+
+get_target_property(JSON_INCLUDE_DIR jsoncpp_lib INTERFACE_INCLUDE_DIRECTORIES)
 
 target_include_directories(tiniergltf
   INTERFACE
@@ -20,4 +27,4 @@ target_include_directories(tiniergltf
 	"${JSON_INCLUDE_DIR}"
 )
 
-target_link_libraries(tiniergltf "${JSON_LIBRARY}")
+target_link_libraries(tiniergltf jsoncpp_lib)
