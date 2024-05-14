@@ -2,5 +2,5 @@ cmake
 CMakeCache.txt
 CMakeFiles
 .cache
-cmake
 compile_commands.json
+build
