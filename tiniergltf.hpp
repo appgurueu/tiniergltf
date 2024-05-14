@@ -1243,7 +1243,9 @@ struct GlTF {
 					CHECK(view.byteStride.value() % accessor.componentSize() == 0);
 				CHECK(accessor.byteOffset < view.byteLength);
 				// Use division to avoid overflows.
-				CHECK(accessor.count <= view.byteLength / accessor.elementSize());
+				// TODO this should be (but written in such a way that overflows are avoided):
+				// `accessor.byteOffset + EFFECTIVE_BYTE_STRIDE * (accessor.count - 1) + SIZE_OF_COMPONENT * NUMBER_OF_COMPONENTS`
+				CHECK(accessor.count <= view.byteLength / view.byteStride.value_or(accessor.elementSize()));
 			}
 			if (accessor.sparse.has_value()) {
 				// Again be careful because of possible integer overflows.
@@ -1252,6 +1254,7 @@ struct GlTF {
 					checkIndex(bufferViews, indices.bufferView);
 					const BufferView &view = bufferViews->at(indices.bufferView);
 					CHECK(indices.byteOffset < view.byteLength);
+					// TODO take byte stride into account
 					CHECK(accessor.sparse->count <= (view.byteLength - indices.byteOffset) / indices.elementSize());
 				}
 				{
@@ -1259,6 +1262,7 @@ struct GlTF {
 					checkIndex(bufferViews, values.bufferView);
 					const BufferView &view = bufferViews->at(values.bufferView);
 					CHECK(values.byteOffset < view.byteLength);
+					// TODO take byte stride into account
 					CHECK(accessor.sparse->count <= (view.byteLength - values.byteOffset) / accessor.elementSize());
 				}
 			}
