@@ -17,26 +17,28 @@
 
 namespace tiniergltf {
 
-static inline void CHECK(bool cond) {
+static inline void check(bool cond) {
 	if (!cond)
 		throw std::runtime_error("invalid glTF");
 }
 
 template <typename T>
-static inline void checkIndex(std::optional<std::vector<T>> vec, std::optional<std::size_t> i) {
+static inline void checkIndex(const std::optional<std::vector<T>> &vec,
+		const std::optional<std::size_t> &i) {
 	if (!i.has_value()) return;
-	CHECK(vec.has_value());
-	CHECK(i < vec->size());
+	check(vec.has_value());
+	check(i < vec->size());
 }
 
 template <typename T>
-static inline void checkIndex(std::vector<T> vec, std::optional<std::size_t> i) {
+static inline void checkIndex(const std::vector<T> &vec,
+		const std::optional<std::size_t> &i) {
 	if (!i.has_value()) return;
-	CHECK(i < vec.size());
+	check(i < vec.size());
 }
 
 template <typename T, typename F>
-static inline void checkForall(std::optional<std::vector<T>> vec, F cond) {
+static inline void checkForall(const std::optional<std::vector<T>> &vec, const F &cond) {
 	if (!vec.has_value())
 		return;
 	for (const T &v : vec.value())
@@ -45,7 +47,7 @@ static inline void checkForall(std::optional<std::vector<T>> vec, F cond) {
 
 template <typename T>
 static inline void checkDuplicateFree(const std::vector<T> &vec) {
-	CHECK(std::unordered_set<T>(vec.begin(), vec.end()).size() == vec.size());
+	check(std::unordered_set<T>(vec.begin(), vec.end()).size() == vec.size());
 }
 
 template <typename T>
@@ -53,33 +55,33 @@ static inline T as(const Json::Value &o);
 
 template<>
 bool as(const Json::Value &o) {
-	CHECK(o.isBool());
+	check(o.isBool());
 	return o.asBool();
 }
 
 template<>
 double as (const Json::Value &o) {
-	CHECK(o.isDouble());
+	check(o.isDouble());
 	return o.asDouble();
 }
 
 template<>
 std::size_t as(const Json::Value &o) {
-	CHECK(o.isUInt64());
+	check(o.isUInt64());
 	auto u = o.asUInt64();
-	CHECK(u <= std::numeric_limits<std::size_t>::max());
+	check(u <= std::numeric_limits<std::size_t>::max());
 	return u;
 }
 
 template<>
 std::string as(const Json::Value &o) {
-	CHECK(o.isString());
+	check(o.isString());
 	return o.asString();
 }
 
 template<typename U>
 std::vector<U> asVec(const Json::Value &o) {
-	CHECK(o.isArray());
+	check(o.isArray());
 	std::vector<U> res;
 	res.reserve(o.size());
 	for (Json::ArrayIndex i = 0; i < o.size(); ++i) {
@@ -90,8 +92,8 @@ std::vector<U> asVec(const Json::Value &o) {
 
 template<typename U, std::size_t n>
 std::array<U, n> asArr(const Json::Value &o) {
-	CHECK(o.isArray());
-	CHECK(o.size() == n);
+	check(o.isArray());
+	check(o.size() == n);
 	std::array<U, n> res;
 	for (Json::ArrayIndex i = 0; i < n; ++i) {
 		res[i] = as<U>(o[i]);
@@ -126,10 +128,10 @@ struct AccessorSparseIndices {
 		: bufferView(as<std::size_t>(o["bufferView"]))
 		, byteOffset(0)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("byteOffset")) {
 			byteOffset = as<std::size_t>(o["byteOffset"]);
-			CHECK(byteOffset >= 0);
+			check(byteOffset >= 0);
 		}
 		{
 			static std::unordered_map<Json::UInt64, ComponentType> map = {
@@ -137,7 +139,7 @@ struct AccessorSparseIndices {
 				{5123, ComponentType::UNSIGNED_SHORT},
 				{5125, ComponentType::UNSIGNED_INT},
 			};
-			auto v = o["componentType"]; CHECK(v.isUInt64());
+			auto v = o["componentType"]; check(v.isUInt64());
 			componentType = map.at(v.asUInt64());
 		}
 	}
@@ -151,10 +153,10 @@ struct AccessorSparseValues {
 		: bufferView(as<std::size_t>(o["bufferView"]))
 		, byteOffset(0)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("byteOffset")) {
 			byteOffset = as<std::size_t>(o["byteOffset"]);
-			CHECK(byteOffset >= 0);
+			check(byteOffset >= 0);
 		}
 	}
 };
@@ -169,8 +171,8 @@ struct AccessorSparse {
 		, indices(as<AccessorSparseIndices>(o["indices"]))
 		, values(as<AccessorSparseValues>(o["values"]))
 	{
-		CHECK(o.isObject());
-		CHECK(count >= 1);
+		check(o.isObject());
+		check(count >= 1);
 	}
 };
 template<> AccessorSparse as(const Json::Value &o) { return o; }
@@ -243,7 +245,7 @@ struct Accessor {
 		, count(as<std::size_t>(o["count"]))
 		, normalized(false)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("bufferView")) {
 			bufferView = as<std::size_t>(o["bufferView"]);
 		}
@@ -256,15 +258,15 @@ struct Accessor {
 				{5125, ComponentType::UNSIGNED_INT},
 				{5126, ComponentType::FLOAT},
 			};
-			auto v = o["componentType"]; CHECK(v.isUInt64());
+			auto v = o["componentType"]; check(v.isUInt64());
 			componentType = map.at(v.asUInt64());
 		}
 		if (o.isMember("byteOffset")) {
 			byteOffset = as<std::size_t>(o["byteOffset"]);
-			CHECK(byteOffset >= 0);
-			CHECK(byteOffset % componentSize() == 0);
+			check(byteOffset >= 0);
+			check(byteOffset % componentSize() == 0);
 		}
-		CHECK(count >= 1);
+		check(count >= 1);
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
 		}
@@ -284,16 +286,16 @@ struct Accessor {
 				{"VEC3", Type::VEC3},
 				{"VEC4", Type::VEC4},
 			};
-			auto v = o["type"]; CHECK(v.isString());
+			auto v = o["type"]; check(v.isString());
 			type = map.at(v.asString());
 		}
 		if (o.isMember("max")) {
 			max = asVec<double>(o["max"]);
-			CHECK(max->size() == typeCount());
+			check(max->size() == typeCount());
 		}
 		if (o.isMember("min")) {
 			min = asVec<double>(o["min"]);
-			CHECK(min->size() == typeCount());
+			check(min->size() == typeCount());
 		}
 	}
 };
@@ -310,7 +312,7 @@ struct AnimationChannelTarget {
 	Path path;
 	AnimationChannelTarget(const Json::Value &o)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("node")) {
 			node = as<std::size_t>(o["node"]);
 		}
@@ -321,7 +323,7 @@ struct AnimationChannelTarget {
 				{"translation", Path::TRANSLATION},
 				{"weights", Path::WEIGHTS},
 			};
-			auto v = o["path"]; CHECK(v.isString());
+			auto v = o["path"]; check(v.isString());
 			path = map.at(v.asString());
 		}
 	}
@@ -335,7 +337,7 @@ struct AnimationChannel {
 		: sampler(as<std::size_t>(o["sampler"]))
 		, target(as<AnimationChannelTarget>(o["target"]))
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 	}
 };
 template<> AnimationChannel as(const Json::Value &o) { return o; }
@@ -354,14 +356,14 @@ struct AnimationSampler {
 		, interpolation(Interpolation::LINEAR)
 		, output(as<std::size_t>(o["output"]))
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("interpolation")) {
 			static std::unordered_map<Json::String, Interpolation> map = {
 				{"CUBICSPLINE", Interpolation::CUBICSPLINE},
 				{"LINEAR", Interpolation::LINEAR},
 				{"STEP", Interpolation::STEP},
 			};
-			auto v = o["interpolation"]; CHECK(v.isString());
+			auto v = o["interpolation"]; check(v.isString());
 			interpolation = map.at(v.asString());
 		}
 	}
@@ -376,12 +378,12 @@ struct Animation {
 		: channels(asVec<AnimationChannel>(o["channels"]))
 		, samplers(asVec<AnimationSampler>(o["samplers"]))
 	{
-		CHECK(o.isObject());
-		CHECK(channels.size() >= 1);
+		check(o.isObject());
+		check(channels.size() >= 1);
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
 		}
-		CHECK(samplers.size() >= 1);
+		check(samplers.size() >= 1);
 	}
 };
 template<> Animation as(const Json::Value &o) { return o; }
@@ -394,7 +396,7 @@ struct Asset {
 	Asset(const Json::Value &o)
 		: version(as<std::string>(o["version"]))
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("copyright")) {
 			copyright = as<std::string>(o["copyright"]);
 		}
@@ -424,17 +426,17 @@ struct BufferView {
 		, byteLength(as<std::size_t>(o["byteLength"]))
 		, byteOffset(0)
 	{
-		CHECK(o.isObject());
-		CHECK(byteLength >= 1);
+		check(o.isObject());
+		check(byteLength >= 1);
 		if (o.isMember("byteOffset")) {
 			byteOffset = as<std::size_t>(o["byteOffset"]);
-			CHECK(byteOffset >= 0);
+			check(byteOffset >= 0);
 		}
 		if (o.isMember("byteStride")) {
 			byteStride = as<std::size_t>(o["byteStride"]);
-			CHECK(byteStride.value() >= 4);
-			CHECK(byteStride.value() <= 252);
-			CHECK(byteStride.value() % 4 == 0);
+			check(byteStride.value() >= 4);
+			check(byteStride.value() <= 252);
+			check(byteStride.value() % 4 == 0);
 		}
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
@@ -444,7 +446,7 @@ struct BufferView {
 				{34962, Target::ARRAY_BUFFER},
 				{34963, Target::ELEMENT_ARRAY_BUFFER},
 			};
-			auto v = o["target"]; CHECK(v.isUInt64());
+			auto v = o["target"]; check(v.isUInt64());
 			target = map.at(v.asUInt64());
 		}
 	}
@@ -459,12 +461,12 @@ struct Buffer {
 			const std::function<std::vector<unsigned char>(const std::string &uri)> &resolveURI)
 		: byteLength(as<std::size_t>(o["byteLength"]))
 	{
-		CHECK(o.isObject());
-		CHECK(byteLength >= 1);
+		check(o.isObject());
+		check(byteLength >= 1);
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
 		}
-		CHECK(o.isMember("uri"));
+		check(o.isMember("uri"));
 		bool dataURI = false;
 		const std::string uri = as<std::string>(o["uri"]);
 		for (auto &prefix : std::array<std::string, 2> {
@@ -473,7 +475,7 @@ struct Buffer {
 		}) {
 			if (std::string_view(uri).substr(0, prefix.length()) == prefix) {
 				auto view = std::string_view(uri).substr(prefix.length());
-				CHECK(base64_is_valid(view));
+				check(base64_is_valid(view));
 				data = base64_decode(view);
 				dataURI = true;
 				break;
@@ -481,7 +483,7 @@ struct Buffer {
 		}
 		if (!dataURI)
 			data = resolveURI(uri);
-		CHECK(data.size() >= byteLength);
+		check(data.size() >= byteLength);
 		data.resize(byteLength);
 	}
 };
@@ -497,9 +499,9 @@ struct CameraOrthographic {
 		, zfar(as<double>(o["zfar"]))
 		, znear(as<double>(o["znear"]))
 	{
-		CHECK(o.isObject());
-		CHECK(zfar > 0);
-		CHECK(znear >= 0);
+		check(o.isObject());
+		check(zfar > 0);
+		check(znear >= 0);
 	}
 };
 template<> CameraOrthographic as(const Json::Value &o) { return o; }
@@ -513,17 +515,17 @@ struct CameraPerspective {
 		: yfov(as<double>(o["yfov"]))
 		, znear(as<double>(o["znear"]))
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("aspectRatio")) {
 			aspectRatio = as<double>(o["aspectRatio"]);
-			CHECK(aspectRatio.value() > 0);
+			check(aspectRatio.value() > 0);
 		}
-		CHECK(yfov > 0);
+		check(yfov > 0);
 		if (o.isMember("zfar")) {
 			zfar = as<double>(o["zfar"]);
-			CHECK(zfar.value() > 0);
+			check(zfar.value() > 0);
 		}
-		CHECK(znear > 0);
+		check(znear > 0);
 	}
 };
 template<> CameraPerspective as(const Json::Value &o) { return o; }
@@ -539,7 +541,7 @@ struct Camera {
 	Type type;
 	Camera(const Json::Value &o)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
 		}
@@ -554,7 +556,7 @@ struct Camera {
 				{"orthographic", Type::ORTHOGRAPHIC},
 				{"perspective", Type::PERSPECTIVE},
 			};
-			auto v = o["type"]; CHECK(v.isString());
+			auto v = o["type"]; check(v.isString());
 			type = map.at(v.asString());
 		}
 	}
@@ -572,7 +574,7 @@ struct Image {
 	std::optional<std::string> uri;
 	Image(const Json::Value &o)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("bufferView")) {
 			bufferView = as<std::size_t>(o["bufferView"]);
 		}
@@ -581,7 +583,7 @@ struct Image {
 				{"image/jpeg", MimeType::IMAGE_JPEG},
 				{"image/png", MimeType::IMAGE_PNG},
 			};
-			auto v = o["mimeType"]; CHECK(v.isString());
+			auto v = o["mimeType"]; check(v.isString());
 			mimeType = map.at(v.asString());
 		}
 		if (o.isMember("name")) {
@@ -601,10 +603,10 @@ struct TextureInfo {
 		: index(as<std::size_t>(o["index"]))
 		, texCoord(0)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("texCoord")) {
 			texCoord = as<std::size_t>(o["texCoord"]);
-			CHECK(texCoord >= 0);
+			check(texCoord >= 0);
 		}
 	}
 };
@@ -619,7 +621,7 @@ struct MaterialNormalTextureInfo {
 		, scale(1)
 		, texCoord(0)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("scale")) {
 			scale = as<double>(o["scale"]);
 		}
@@ -639,11 +641,11 @@ struct MaterialOcclusionTextureInfo {
 		, strength(1)
 		, texCoord(0)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("strength")) {
 			strength = as<double>(o["strength"]);
-			CHECK(strength >= 0);
-			CHECK(strength <= 1);
+			check(strength >= 0);
+			check(strength <= 1);
 		}
 		if (o.isMember("texCoord")) {
 			texCoord = as<std::size_t>(o["texCoord"]);
@@ -663,12 +665,12 @@ struct MaterialPbrMetallicRoughness {
 		, metallicFactor(1)
 		, roughnessFactor(1)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("baseColorFactor")) {
 			baseColorFactor = asArr<double, 4>(o["baseColorFactor"]);
 			for (auto v: baseColorFactor) {
-				CHECK(v >= 0);
-				CHECK(v <= 1);
+				check(v >= 0);
+				check(v <= 1);
 			}
 		}
 		if (o.isMember("baseColorTexture")) {
@@ -676,16 +678,16 @@ struct MaterialPbrMetallicRoughness {
 		}
 		if (o.isMember("metallicFactor")) {
 			metallicFactor = as<double>(o["metallicFactor"]);
-			CHECK(metallicFactor >= 0);
-			CHECK(metallicFactor <= 1);
+			check(metallicFactor >= 0);
+			check(metallicFactor <= 1);
 		}
 		if (o.isMember("metallicRoughnessTexture")) {
 			metallicRoughnessTexture = as<TextureInfo>(o["metallicRoughnessTexture"]);
 		}
 		if (o.isMember("roughnessFactor")) {
 			roughnessFactor = as<double>(o["roughnessFactor"]);
-			CHECK(roughnessFactor >= 0);
-			CHECK(roughnessFactor <= 1);
+			check(roughnessFactor >= 0);
+			check(roughnessFactor <= 1);
 		}
 	}
 };
@@ -712,10 +714,10 @@ struct Material {
 		, doubleSided(false)
 		, emissiveFactor{0, 0, 0}
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("alphaCutoff")) {
 			alphaCutoff = as<double>(o["alphaCutoff"]);
-			CHECK(alphaCutoff >= 0);
+			check(alphaCutoff >= 0);
 		}
 		if (o.isMember("alphaMode")){
 			static std::unordered_map<Json::String, AlphaMode> map = {
@@ -723,7 +725,7 @@ struct Material {
 				{"MASK", AlphaMode::MASK},
 				{"OPAQUE", AlphaMode::OPAQUE},
 			};
-			auto v = o["alphaMode"]; CHECK(v.isString());
+			auto v = o["alphaMode"]; check(v.isString());
 			alphaMode = map.at(v.asString());
 		}
 		if (o.isMember("doubleSided")) {
@@ -732,8 +734,8 @@ struct Material {
 		if (o.isMember("emissiveFactor")) {
 			emissiveFactor = asArr<double, 3>(o["emissiveFactor"]);
 			for (auto v: emissiveFactor) {
-				CHECK(v >= 0);
-				CHECK(v <= 1);
+				check(v >= 0);
+				check(v <= 1);
 			}
 		}
 		if (o.isMember("emissiveTexture")) {
@@ -780,11 +782,11 @@ struct MeshPrimitive {
 			enumeratedProps(o, "COLOR", color);
 			enumeratedProps(o, "JOINTS", joints);
 			enumeratedProps(o, "WEIGHTS", weights);
-			CHECK(joints.has_value() == weights.has_value());
+			check(joints.has_value() == weights.has_value());
 			if (joints.has_value()) {
-				CHECK(joints->size() == weights->size());
+				check(joints->size() == weights->size());
 			}
-			CHECK(position.has_value()
+			check(position.has_value()
 					|| normal.has_value()
 					|| tangent.has_value()
 					|| texcoord.has_value()
@@ -818,7 +820,7 @@ struct MeshPrimitive {
 				tangent = as<std::size_t>(o["TANGENT"]);
 			enumeratedProps(o, "TEXCOORD", texcoord);
 			enumeratedProps(o, "COLOR", color);
-			CHECK(position.has_value()
+			check(position.has_value()
 					|| normal.has_value()
 					|| tangent.has_value()
 					|| texcoord.has_value()
@@ -830,7 +832,7 @@ struct MeshPrimitive {
 		: attributes(Attributes(o["attributes"]))
 		, mode(Mode::TRIANGLES)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("indices")) {
 			indices = as<std::size_t>(o["indices"]);
 		}
@@ -847,12 +849,12 @@ struct MeshPrimitive {
 				{5, Mode::TRIANGLE_STRIP},
 				{6, Mode::TRIANGLE_FAN},
 			};
-			auto v = o["mode"]; CHECK(v.isUInt64());
+			auto v = o["mode"]; check(v.isUInt64());
 			mode = map.at(v.asUInt64());
 		}
 		if (o.isMember("targets")) {
 			targets = asVec<MorphTargets>(o["targets"]);
-			CHECK(targets->size() >= 1);
+			check(targets->size() >= 1);
 		}
 	}
 };
@@ -866,14 +868,14 @@ struct Mesh {
 	Mesh(const Json::Value &o)
 		: primitives(asVec<MeshPrimitive>(o["primitives"]))
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
 		}
-		CHECK(primitives.size() >= 1);
+		check(primitives.size() >= 1);
 		if (o.isMember("weights")) {
 			weights = asVec<double>(o["weights"]);
-			CHECK(weights->size() >= 1);
+			check(weights->size() >= 1);
 		}
 	}
 };
@@ -901,18 +903,18 @@ struct Node {
 			0, 0, 0, 1
 		})
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("camera")) {
 			camera = as<std::size_t>(o["camera"]);
 		}
 		if (o.isMember("children")) {
 			children = asVec<std::size_t>(o["children"]);
-			CHECK(children->size() >= 1);
+			check(children->size() >= 1);
 			checkDuplicateFree(*children);
 		}
 		bool hasTRS = o.isMember("translation") || o.isMember("rotation") || o.isMember("scale");
 		if (o.isMember("matrix")) {
-			CHECK(!hasTRS);
+			check(!hasTRS);
 			transform = asArr<double, 16>(o["matrix"]);
 		} else if (hasTRS) {
 			TRS trs;
@@ -922,8 +924,8 @@ struct Node {
 			if (o.isMember("rotation")) {
 				trs.rotation = asArr<double, 4>(o["rotation"]);
 				for (auto v: trs.rotation) {
-					CHECK(v >= -1);
-					CHECK(v <= 1);
+					check(v >= -1);
+					check(v <= 1);
 				}
 			}
 			if (o.isMember("scale")) {
@@ -938,12 +940,12 @@ struct Node {
 			name = as<std::string>(o["name"]);
 		}
 		if (o.isMember("skin")) {
-			CHECK(mesh.has_value());
+			check(mesh.has_value());
 			skin = as<std::size_t>(o["skin"]);
 		}
 		if (o.isMember("weights")) {
 			weights = asVec<double>(o["weights"]);
-			CHECK(weights->size() >= 1);
+			check(weights->size() >= 1);
 		}
 	}
 };
@@ -981,13 +983,13 @@ struct Sampler {
 		: wrapS(WrapS::REPEAT)
 		, wrapT(WrapT::REPEAT)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("magFilter")) {
 			static std::unordered_map<Json::UInt64, MagFilter> map = {
 				{9728, MagFilter::NEAREST},
 				{9729, MagFilter::LINEAR},
 			};
-			auto v = o["magFilter"]; CHECK(v.isUInt64());
+			auto v = o["magFilter"]; check(v.isUInt64());
 			magFilter = map.at(v.asUInt64());
 		}
 		if (o.isMember("minFilter")) {
@@ -999,7 +1001,7 @@ struct Sampler {
 				{9986, MinFilter::NEAREST_MIPMAP_LINEAR},
 				{9987, MinFilter::LINEAR_MIPMAP_LINEAR},
 			};
-			auto v = o["minFilter"]; CHECK(v.isUInt64());
+			auto v = o["minFilter"]; check(v.isUInt64());
 			minFilter = map.at(v.asUInt64());
 		}
 		if (o.isMember("name")) {
@@ -1011,7 +1013,7 @@ struct Sampler {
 				{33071, WrapS::CLAMP_TO_EDGE},
 				{33648, WrapS::MIRRORED_REPEAT},
 			};
-			auto v = o["wrapS"]; CHECK(v.isUInt64());
+			auto v = o["wrapS"]; check(v.isUInt64());
 			wrapS = map.at(v.asUInt64());
 		}
 		if (o.isMember("wrapT")) {
@@ -1020,7 +1022,7 @@ struct Sampler {
 				{33071, WrapT::CLAMP_TO_EDGE},
 				{33648, WrapT::MIRRORED_REPEAT},
 			};
-			auto v = o["wrapT"]; CHECK(v.isUInt64());
+			auto v = o["wrapT"]; check(v.isUInt64());
 			wrapT = map.at(v.asUInt64());
 		}
 	}
@@ -1032,13 +1034,13 @@ struct Scene {
 	std::optional<std::vector<std::size_t>> nodes;
 	Scene(const Json::Value &o)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
 		}
 		if (o.isMember("nodes")) {
 			nodes = asVec<std::size_t>(o["nodes"]);
-			CHECK(nodes->size() >= 1);
+			check(nodes->size() >= 1);
 			checkDuplicateFree(*nodes);
 		}
 	}
@@ -1053,11 +1055,11 @@ struct Skin {
 	Skin(const Json::Value &o)
 		: joints(asVec<std::size_t>(o["joints"]))
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("inverseBindMatrices")) {
 			inverseBindMatrices = as<std::size_t>(o["inverseBindMatrices"]);
 		}
-		CHECK(joints.size() >= 1);
+		check(joints.size() >= 1);
 		checkDuplicateFree(joints);
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
@@ -1075,7 +1077,7 @@ struct Texture {
 	std::optional<std::size_t> source;
 	Texture(const Json::Value &o)
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
 		}
@@ -1115,59 +1117,59 @@ struct GlTF {
 			const std::function<std::vector<unsigned char>(const std::string &uri)> &resolveURI = uriError)
 		: asset(as<Asset>(o["asset"]))
 	{
-		CHECK(o.isObject());
+		check(o.isObject());
 		if (o.isMember("accessors")) {
 			accessors = asVec<Accessor>(o["accessors"]);
-			CHECK(accessors->size() >= 1);
+			check(accessors->size() >= 1);
 		}
 		if (o.isMember("animations")) {
 			animations = asVec<Animation>(o["animations"]);
-			CHECK(animations->size() >= 1);
+			check(animations->size() >= 1);
 		}
 		if (o.isMember("bufferViews")) {
 			bufferViews = asVec<BufferView>(o["bufferViews"]);
-			CHECK(bufferViews->size() >= 1);
+			check(bufferViews->size() >= 1);
 		}
 		if (o.isMember("buffers")) {
 			auto b = o["buffers"];
-			CHECK(b.isArray());
+			check(b.isArray());
 			std::vector<Buffer> bufs;
 			bufs.reserve(b.size());
 			for (Json::ArrayIndex i = 0; i < b.size(); ++i) {
 				bufs.push_back(Buffer(b[i], resolveURI));
 			}
-			CHECK(bufs.size() >= 1);
+			check(bufs.size() >= 1);
 			buffers = std::move(bufs);
 		}
 		if (o.isMember("cameras")) {
 			cameras = asVec<Camera>(o["cameras"]);
-			CHECK(cameras->size() >= 1);
+			check(cameras->size() >= 1);
 		}
 		if (o.isMember("extensionsRequired")) {
 			extensionsRequired = asVec<std::string>(o["extensionsRequired"]);
-			CHECK(extensionsRequired->size() >= 1);
+			check(extensionsRequired->size() >= 1);
 			checkDuplicateFree(*extensionsRequired);
 		}
 		if (o.isMember("extensionsUsed")) {
 			extensionsUsed = asVec<std::string>(o["extensionsUsed"]);
-			CHECK(extensionsUsed->size() >= 1);
+			check(extensionsUsed->size() >= 1);
 			checkDuplicateFree(*extensionsUsed);
 		}
 		if (o.isMember("images")) {
 			images = asVec<Image>(o["images"]);
-			CHECK(images->size() >= 1);
+			check(images->size() >= 1);
 		}
 		if (o.isMember("materials")) {
 			materials = asVec<Material>(o["materials"]);
-			CHECK(materials->size() >= 1);
+			check(materials->size() >= 1);
 		}
 		if (o.isMember("meshes")) {
 			meshes = asVec<Mesh>(o["meshes"]);
-			CHECK(meshes->size() >= 1);
+			check(meshes->size() >= 1);
 		}
 		if (o.isMember("nodes")) {
 			nodes = asVec<Node>(o["nodes"]);
-			CHECK(nodes->size() >= 1);
+			check(nodes->size() >= 1);
 			// Nodes must be a forest:
 			// 1. Each node should have indegree 0 or 1:
 			std::vector<std::size_t> indeg(nodes->size());
@@ -1179,7 +1181,7 @@ struct GlTF {
 				}
 			}
 			for (const auto deg : indeg) {
-				CHECK(deg <= 1);
+				check(deg <= 1);
 			}
 			// 2. There should be no cycles:
 			std::vector<bool> visited(nodes->size());
@@ -1192,7 +1194,7 @@ struct GlTF {
 				toVisit.push(i);
 				do {
 					std::size_t j = toVisit.top();
-					CHECK(!visited.at(j));
+					check(!visited.at(j));
 					visited[j] = true;
 					toVisit.pop();
 					auto children = nodes->at(j).children;
@@ -1206,33 +1208,33 @@ struct GlTF {
 		}
 		if (o.isMember("samplers")) {
 			samplers = asVec<Sampler>(o["samplers"]);
-			CHECK(samplers->size() >= 1);
+			check(samplers->size() >= 1);
 		}
 		if (o.isMember("scene")) {
 			scene = as<std::size_t>(o["scene"]);
 		}
 		if (o.isMember("scenes")) {
 			scenes = asVec<Scene>(o["scenes"]);
-			CHECK(scenes->size() >= 1);
+			check(scenes->size() >= 1);
 		}
 		if (o.isMember("skins")) {
 			skins = asVec<Skin>(o["skins"]);
-			CHECK(skins->size() >= 1);
+			check(skins->size() >= 1);
 		}
 		if (o.isMember("textures")) {
 			textures = asVec<Texture>(o["textures"]);
-			CHECK(textures->size() >= 1);
+			check(textures->size() >= 1);
 		}
 
 		// Validation
 
 		checkForall(bufferViews, [&](const BufferView &view) {
-			CHECK(buffers.has_value());
+			check(buffers.has_value());
 			const Buffer &buf = buffers->at(view.buffer);
 			// Be careful because of possible integer overflows.
-			CHECK(view.byteOffset < buf.byteLength);
-			CHECK(view.byteLength <= buf.byteLength);
-			CHECK(view.byteOffset <= buf.byteLength - view.byteLength);
+			check(view.byteOffset < buf.byteLength);
+			check(view.byteLength <= buf.byteLength);
+			check(view.byteOffset <= buf.byteLength - view.byteLength);
 		});
 
 		checkForall(accessors, [&](const Accessor &accessor) {
@@ -1240,12 +1242,12 @@ struct GlTF {
 			if (accessor.bufferView.has_value()) {
 				const BufferView &view = bufferViews->at(accessor.bufferView.value());
 				if (view.byteStride.has_value())
-					CHECK(view.byteStride.value() % accessor.componentSize() == 0);
-				CHECK(accessor.byteOffset < view.byteLength);
+					check(view.byteStride.value() % accessor.componentSize() == 0);
+				check(accessor.byteOffset < view.byteLength);
 				// Use division to avoid overflows.
 				// TODO this should be (but written in such a way that overflows are avoided):
 				// `accessor.byteOffset + EFFECTIVE_BYTE_STRIDE * (accessor.count - 1) + SIZE_OF_COMPONENT * NUMBER_OF_COMPONENTS`
-				CHECK(accessor.count <= view.byteLength / view.byteStride.value_or(accessor.elementSize()));
+				check(accessor.count <= view.byteLength / view.byteStride.value_or(accessor.elementSize()));
 			}
 			if (accessor.sparse.has_value()) {
 				// Again be careful because of possible integer overflows.
@@ -1253,17 +1255,17 @@ struct GlTF {
 					const auto &indices = accessor.sparse->indices;
 					checkIndex(bufferViews, indices.bufferView);
 					const BufferView &view = bufferViews->at(indices.bufferView);
-					CHECK(indices.byteOffset < view.byteLength);
+					check(indices.byteOffset < view.byteLength);
 					// TODO take byte stride into account
-					CHECK(accessor.sparse->count <= (view.byteLength - indices.byteOffset) / indices.elementSize());
+					check(accessor.sparse->count <= (view.byteLength - indices.byteOffset) / indices.elementSize());
 				}
 				{
 					const auto &values = accessor.sparse->values;
 					checkIndex(bufferViews, values.bufferView);
 					const BufferView &view = bufferViews->at(values.bufferView);
-					CHECK(values.byteOffset < view.byteLength);
+					check(values.byteOffset < view.byteLength);
 					// TODO take byte stride into account
-					CHECK(accessor.sparse->count <= (view.byteLength - values.byteOffset) / accessor.elementSize());
+					check(accessor.sparse->count <= (view.byteLength - values.byteOffset) / accessor.elementSize());
 				}
 			}
 		});
@@ -1294,16 +1296,16 @@ struct GlTF {
 				if (primitive.material.has_value()) {
 					const Material &material = materials->at(primitive.material.value());
 					if (material.emissiveTexture.has_value()) {
-						CHECK(primitive.attributes.texcoord.has_value());
-						CHECK(material.emissiveTexture->texCoord < primitive.attributes.texcoord->size());
+						check(primitive.attributes.texcoord.has_value());
+						check(material.emissiveTexture->texCoord < primitive.attributes.texcoord->size());
 					}
 					if (material.normalTexture.has_value()) {
-						CHECK(primitive.attributes.texcoord.has_value());
-						CHECK(material.normalTexture->texCoord < primitive.attributes.texcoord->size());
+						check(primitive.attributes.texcoord.has_value());
+						check(material.normalTexture->texCoord < primitive.attributes.texcoord->size());
 					}
 					if (material.occlusionTexture.has_value()) {
-						CHECK(primitive.attributes.texcoord.has_value());
-						CHECK(material.occlusionTexture->texCoord < primitive.attributes.texcoord->size());
+						check(primitive.attributes.texcoord.has_value());
+						check(material.occlusionTexture->texCoord < primitive.attributes.texcoord->size());
 					}
 				}
 				checkForall(primitive.targets, [&](const MeshPrimitive::MorphTargets &target) {
@@ -1348,8 +1350,8 @@ struct GlTF {
 			for (const auto &sampler : animation.samplers) {
 				checkIndex(accessors, sampler.input);
 				const auto &accessor = accessors->at(sampler.input);
-				CHECK(accessor.type == Accessor::Type::SCALAR);
-				CHECK(accessor.componentType == Accessor::ComponentType::FLOAT);
+				check(accessor.type == Accessor::Type::SCALAR);
+				check(accessor.componentType == Accessor::ComponentType::FLOAT);
 				checkIndex(accessors, sampler.output);
 			}
 			for (const auto &channel : animation.channels) {
