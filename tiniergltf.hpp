@@ -1,5 +1,6 @@
 #pragma once
 
+#include <json/json.h>
 #include <functional>
 #include <stack>
 #include <string>
@@ -12,17 +13,14 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
-#include <json/json.h>
 #include "base64.h"
 
 namespace tiniergltf {
 
-#define CHECK(cond) do { \
-		if (!(cond)) \
-			throw std::runtime_error(__FILE__ ":" \
-				+ std::to_string(__LINE__) + \
-				": check failed"); \
-	} while (0)
+static inline void CHECK(bool cond) {
+	if (!cond)
+		throw std::runtime_error("invalid glTF");
+}
 
 template <typename T>
 static inline void checkIndex(std::optional<std::vector<T>> vec, std::optional<std::size_t> i) {
@@ -43,6 +41,11 @@ static inline void checkForall(std::optional<std::vector<T>> vec, F cond) {
 		return;
 	for (const T &v : vec.value())
 		cond(v);
+}
+
+template <typename T>
+static inline void checkDuplicateFree(const std::vector<T> &vec) {
+	CHECK(std::unordered_set<T>(vec.begin(), vec.end()).size() == vec.size());
 }
 
 template <typename T>
@@ -905,7 +908,7 @@ struct Node {
 		if (o.isMember("children")) {
 			children = asVec<std::size_t>(o["children"]);
 			CHECK(children->size() >= 1);
-			CHECK(std::unordered_set(children->begin(), children->end()).size() == children->size());
+			checkDuplicateFree(*children);
 		}
 		bool hasTRS = o.isMember("translation") || o.isMember("rotation") || o.isMember("scale");
 		if (o.isMember("matrix")) {
@@ -1036,7 +1039,7 @@ struct Scene {
 		if (o.isMember("nodes")) {
 			nodes = asVec<std::size_t>(o["nodes"]);
 			CHECK(nodes->size() >= 1);
-			CHECK(std::unordered_set(nodes->begin(), nodes->end()).size() == nodes->size());
+			checkDuplicateFree(*nodes);
 		}
 	}
 };
@@ -1055,7 +1058,7 @@ struct Skin {
 			inverseBindMatrices = as<std::size_t>(o["inverseBindMatrices"]);
 		}
 		CHECK(joints.size() >= 1);
-		CHECK(std::unordered_set(joints.begin(), joints.end()).size() == joints.size());
+		checkDuplicateFree(joints);
 		if (o.isMember("name")) {
 			name = as<std::string>(o["name"]);
 		}
@@ -1143,12 +1146,12 @@ struct GlTF {
 		if (o.isMember("extensionsRequired")) {
 			extensionsRequired = asVec<std::string>(o["extensionsRequired"]);
 			CHECK(extensionsRequired->size() >= 1);
-			CHECK(std::unordered_set(extensionsRequired->begin(), extensionsRequired->end()).size() == extensionsRequired->size());
+			checkDuplicateFree(*extensionsRequired);
 		}
 		if (o.isMember("extensionsUsed")) {
 			extensionsUsed = asVec<std::string>(o["extensionsUsed"]);
 			CHECK(extensionsUsed->size() >= 1);
-			CHECK(std::unordered_set(extensionsUsed->begin(), extensionsUsed->end()).size() == extensionsUsed->size());
+			checkDuplicateFree(*extensionsUsed);
 		}
 		if (o.isMember("images")) {
 			images = asVec<Image>(o["images"]);
