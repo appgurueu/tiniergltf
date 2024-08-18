@@ -104,6 +104,7 @@ std::array<U, n> asArr(const Json::Value &o) {
 struct AccessorSparseIndices {
 	std::size_t bufferView;
 	std::size_t byteOffset;
+	// as defined in the glTF specification
 	enum class ComponentType {
 		UNSIGNED_BYTE,
 		UNSIGNED_SHORT,
@@ -180,6 +181,7 @@ template<> AccessorSparse as(const Json::Value &o) { return o; }
 struct Accessor {
 	std::optional<std::size_t> bufferView;
 	std::size_t byteOffset;
+	// as defined in the glTF specification
 	enum class ComponentType {
 		BYTE,
 		UNSIGNED_BYTE,
